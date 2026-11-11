@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reto Histórico: Perú y el Mundo (1980-2000)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff1f2',
+                            100: '#ffe4e6',
+                            200: '#fecdd3',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            700: '#be123c',
+                            800: '#9f1239',
+                            900: '#881337',
+                        },
+                        accent: {
+                            500: '#f97316',
+                            600: '#ea580c',
+                        },
+                        skycustom: {
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .heart-beat { animation: heartbeat 1.5s infinite; }
+        @keyframes heartbeat { 
+            0% { transform: scale(1); } 
+            15% { transform: scale(1.2); } 
+            30% { transform: scale(1); } 
+            45% { transform: scale(1.2); } 
+            60% { transform: scale(1); } 
+        }
+        .heart-lost { filter: grayscale(100%); opacity: 0.3; animation: none; }
+        
+        .feedback-pop { 
+            animation: popIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        #custom-notification {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(-20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #custom-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-skycustom-900 via-slate-900 to-brand-900 min-h-screen text-white flex items-center justify-center p-4">
+
+    <!-- Notificación Custom -->
+    <div id="custom-notification" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 bg-brand-600 text-white px-6 py-3 rounded-xl shadow-2xl font-bold flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+        <span id="notification-msg">Mensaje de error</span>
+        <button onclick="hideNotification()" class="ml-4 text-white hover:text-rose-200">✖</button>
+    </div>
+
+    <!-- Feedback visual animado -->
+    <div id="feedback-overlay" class="fixed inset-0 flex items-center justify-center pointer-events-none z-50 hidden">
+        <h2 id="feedback-text" class="text-5xl md:text-7xl font-black text-amber-400 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] text-center tracking-wider"></h2>
+    </div>
+
+    <div class="max-w-3xl w-full bg-slate-50 text-slate-800 rounded-3xl shadow-2xl overflow-hidden fade-in relative border border-slate-200">
+        
+        <header class="bg-gradient-to-r from-brand-700 to-accent-600 text-white p-6 text-center shadow-md relative z-10">
+            <h1 class="text-3xl font-extrabold tracking-tight">Reto Histórico Interactivo</h1>
+            <p class="text-rose-100 font-semibold mt-1 text-lg">Ciencias Sociales - Secundaria</p>
+            <div class="inline-block bg-skycustom-600 text-white px-4 py-1 rounded-full font-bold mt-2 text-sm uppercase tracking-wide shadow">
+                Tema: El Perú y el Mundo entre 1980 y 2000
+            </div>
+            <p class="text-xs font-semibold text-rose-200 mt-2">I.E. Santísima Niña María</p>
+        </header>
+
+        <!-- PANTALLA DE REGISTRO -->
+        <div id="screen-register" class="p-8">
+            <h2 class="text-2xl font-bold text-center mb-2 text-brand-900">¡Bienvenido al Desafío de Historia!</h2>
+            <p class="text-center text-slate-600 mb-8">Por favor, identifica tus datos para comenzar a jugar.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Grado</label>
+                    <select id="sel-grado" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white outline-none transition">
+                        <option value="">Selecciona tu grado</option>
+                        <option value="5">5to Secundaria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
+                    <select id="sel-seccion" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white outline-none transition">
+                        <option value="">Selecciona tu sección</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-8">
+                <button id="btn-buscar-alumnas" class="w-full bg-brand-700 hover:bg-brand-800 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">
+                    Buscar mi nombre
+                </button>
+            </div>
+
+            <div id="container-nombre" class="hidden fade-in">
+                <label class="block text-sm font-semibold text-slate-700 mb-2">Tu Nombre</label>
+                <select id="sel-nombre" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 bg-white outline-none transition mb-6">
+                    <option value="">Selecciona tu nombre</option>
+                </select>
+
+                <button id="btn-iniciar" class="w-full bg-accent-600 hover:bg-accent-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg text-lg transition transform hover:-translate-y-0.5">
+                    ¡Comenzar el Juego!
+                </button>
+            </div>
+            
+            <div id="loading-msg" class="hidden text-center text-brand-700 font-semibold mt-4">Conectando con la base de datos...</div>
+
+            <!-- FIRMA DEL DOCENTE -->
+            <div class="mt-8 pt-4 border-t border-slate-200 text-center text-sm text-slate-500">
+                Elaborado por: <span class="font-bold text-slate-700">Frida Margot Pino Alarcón</span>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE JUEGO -->
+        <div id="screen-game" class="hidden p-8 fade-in relative">
+            
+            <div class="w-full bg-slate-200 rounded-full h-4 mb-6 relative overflow-hidden shadow-inner border border-slate-300">
+                <div id="timer-bar" class="bg-skycustom-500 h-4 rounded-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-xs font-bold text-slate-800" style="text-shadow: 0 0 2px white;" id="timer-text">20s</div>
+            </div>
+
+            <div class="flex justify-between items-center mb-6 bg-rose-50 p-4 rounded-2xl border border-rose-200">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-brand-900">Vidas:</span>
+                    <div id="lives-container" class="flex gap-1 text-brand-600 text-2xl">
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="font-bold text-brand-900">Puntos:</span>
+                    <span id="score-display" class="text-2xl font-black text-brand-700">0</span>
+                </div>
+            </div>
+
+            <div class="mb-8 text-center">
+                <span id="question-number" class="text-sm font-bold text-accent-600 uppercase tracking-wider">Pregunta 1</span>
+                <h3 id="question-text" class="text-xl md:text-2xl font-bold text-slate-800 mt-2">¿Cargando pregunta...?</h3>
+            </div>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Opciones dinámicas -->
+            </div>
+        </div>
+
+        <!-- PANTALLA DE RESULTADOS -->
+        <div id="screen-results" class="hidden p-8 text-center fade-in">
+            <h2 id="end-title" class="text-3xl font-extrabold mb-4 text-brand-800">¡Juego Terminado!</h2>
+            <p class="text-slate-700 text-lg mb-6" id="end-message">Has perdido todas tus vidas o completaste las preguntas.</p>
+            
+            <div class="bg-rose-50 border-4 border-brand-600 rounded-3xl p-6 inline-block mb-8 shadow-sm">
+                <p class="text-sm text-brand-800 font-bold uppercase">Puntaje Final</p>
+                <p id="final-score" class="text-6xl font-black text-brand-800">0</p>
+            </div>
+
+            <h3 class="text-xl font-bold text-slate-800 mb-4">🏆 Tabla de Posiciones 🏆</h3>
+            <div class="bg-white rounded-xl border border-slate-200 p-4 max-h-64 overflow-y-auto mb-6 text-left shadow-inner">
+                <ul id="ranking-list" class="divide-y divide-slate-100">
+                    <li class="py-2 text-center text-slate-500">Cargando ranking...</li>
+                </ul>
+            </div>
+
+            <button onclick="location.reload()" class="bg-brand-700 hover:bg-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-lg transition transform hover:-translate-y-0.5">
+                Jugar de Nuevo
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // === SISTEMA DE NOTIFICACIONES ===
+        let notificationTimeout;
+        function showNotification(message) {
+            const notif = document.getElementById('custom-notification');
+            document.getElementById('notification-msg').textContent = message;
+            notif.classList.add('show');
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(hideNotification, 4000);
+        }
+
+        function hideNotification() {
+            document.getElementById('custom-notification').classList.remove('show');
+        }
+
+        // === CONFIGURACIÓN DE AUDIO ===
+        const correctSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+        const incorrectSynth = new Tone.Synth().toDestination();
+        
+        function playCorrectSound() {
+            if (Tone.context.state !== 'running') Tone.start();
+            const now = Tone.now();
+            correctSynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+            correctSynth.volume.value = -10;
+        }
+
+        function playIncorrectSound() {
+            if (Tone.context.state !== 'running') Tone.start();
+            incorrectSynth.triggerAttackRelease("C2", "8n");
+            incorrectSynth.volume.value = -10;
+        }
+
+        // === SINTESIS DE VOZ ===
+        function speakQuestion(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const cleanText = text.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s¿?]/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'es-ES'; 
+                utterance.rate = 1.1; 
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // === FEEDBACK VISUAL ===
+        const frasesCorrectas = ["¡EXCELENTE!", "¡CORRECTO!", "¡GRAN TRABAJO!", "¡PUNTO HISTÓRICO!", "¡PERFECTO!"];
+        const frasesIncorrectas = ["¡SIGUE INTENTANDO!", "¡CONCÉNTRATE!", "¡REVISA LA FECHA!", "¡CUIDADO!", "¡TÚ PUEDES!"];
+
+        function showFeedback(isCorrect) {
+            const overlay = document.getElementById('feedback-overlay');
+            const textEl = document.getElementById('feedback-text');
+            
+            const frases = isCorrect ? frasesCorrectas : frasesIncorrectas;
+            const fraseAzar = frases[Math.floor(Math.random() * frases.length)];
+            
+            textEl.textContent = fraseAzar;
+            textEl.className = `text-5xl md:text-7xl font-black drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] text-center tracking-wider feedback-pop ${isCorrect ? 'text-amber-400' : 'text-rose-500'}`;
+            
+            overlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                textEl.classList.remove('feedback-pop');
+            }, 1000); 
+        }
+
+        // === BANCO DE PREGUNTAS (EXTRAÍDAS EXCLUSIVAMENTE DEL PDF) ===
+        const questionBank = [
+            // Fáciles
+            { 
+                q: "¿En qué localidad de Ayacucho quemó ánforas electorales Sendero Luminoso el 17 de mayo de 1980?", 
+                options: ["Chuschi", "Lucanamarca", "Huamanga", "Uchuraccay"], 
+                answer: 0 
+            },
+            { 
+                q: "¿Quién fue el líder y fundador de la organización subversiva Sendero Luminoso?", 
+                options: ["Víctor Polay Campos", "Abimael Guzmán", "Vladimiro Montesinos", "Néstor Cerpa Cartolini"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué fenómeno climático causó severas lluvias e inundaciones en la costa norte del Perú en 1983 y 1997-1998?", 
+                options: ["La Niña", "El Niño", "Ciclón Yaku", "Helada del Sur"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué moneda peruana sufrió una acelerada devaluación e hiperinflación a finales de la década de 1980?", 
+                options: ["El Sol de Oro", "El Nuevo Sol", "El Inti", "El Peso Peruano"], 
+                answer: 2 
+            },
+            { 
+                q: "¿Qué hito histórico ocurrió el 9 de noviembre de 1989 como símbolo del fin de la Guerra Fría?", 
+                options: ["La disolución de la URSS", "La caída del Muro de Berlín", "La reunificación de Alemania", "La firma del Tratado de Maastricht"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Quién fue liberado en Sudáfrica en 1990 tras 27 años de prisión y elegido presidente en 1994?", 
+                options: ["Kofi Annan", "Nelson Mandela", "Mijaíl Gorbachov", "Fw de Klerk"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué unidad especializada de la Policía Nacional capturó a Abimael Guzmán el 12 de septiembre de 1992?", 
+                options: ["DINANDRO", "GEIN", "SUAT", "Grupo Colina"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué acuerdos de paz firmaron Perú y Ecuador en 1998 para cerrar definitivamente su disputa fronteriza?", 
+                options: ["Protocolo de Río de Janeiro", "Acuerdos de Brasilia", "Tratado de Lima", "Acuerdos de Dayton"], 
+                answer: 1 
+            },
+            
+            // Intermedias
+            { 
+                q: "¿En qué año iniciaron las acciones armadas del Movimiento Revolucionario Túpac Amaru (MRTA)?", 
+                options: ["1980", "1982", "1984", "1986"], 
+                answer: 2 
+            },
+            { 
+                q: "¿Qué medida económica anunciada por el presidente Alan García en 1987 generó una fuerte controversia y desconfianza empresarial?", 
+                options: ["El Fujishock", "La estatización de la banca", "El paquetazo de precios", "La devaluación del sol"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Cómo se llamó popularmente el severo programa de estabilización económica aplicado en agosto de 1990?", 
+                options: ["Plan de Ajuste Inti", "El Paquetazo", "Fujishock", "Reforma Neoliberal"], 
+                answer: 2 
+            },
+            { 
+                q: "¿Qué ocurrió el 5 de abril de 1992 en el Perú?", 
+                options: ["La captura del líder del MRTA", "El autogolpe de Alberto Fujimori", "La aprobación de la Constitución", "La toma de la embajada de Japón"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué operación militar rescató con éxito a los rehenes de la residencia del embajador de Japón el 22 de abril de 1997?", 
+                options: ["Operación Victoria", "Operación Chavín de Huántar", "Operación Falso Paquisha", "Operación Túpac Amaru"], 
+                answer: 1 
+            },
+            { 
+                q: "¿En qué año se disolvió oficialmente la Unión Soviética (URSS), dando origen a 15 repúblicas independientes?", 
+                options: ["1989", "1990", "1991", "1993"], 
+                answer: 2 
+            },
+            { 
+                q: "¿Qué desastre nuclear ocurrió el 26 de abril de 1986 en la república soviética de Ucrania?", 
+                options: ["Accidente de Fukushima", "Accidente de Chernóbil", "Explosión del Challenger", "Desastre de Srebrenica"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué tratado entró en vigor en 1993 sentando las bases institucionales de la Unión Europea?", 
+                options: ["Tratado de Oslo", "Tratado de Maastricht", "Acuerdo de Viernes Santo", "Pacto de Varsovia"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Qué organismo internacional encargado de regular el comercio mundial comenzó a funcionar en 1995?", 
+                options: ["OMC", "FMI", "BM", "OCDE"], 
+                answer: 0 
+            },
+
+            // Avanzadas
+            { 
+                q: "¿A cuánto estimó la Comisión de la Verdad y Reconciliación (CVR) la cifra más probable de víctimas fatales del conflicto armado interno?", 
+                options: ["25 000 personas", "45 500 personas", "69 280 personas", "100 000 personas"], 
+                answer: 2 
+            },
+            { 
+                q: " ¿Cómo se llamaron las reformas impulsadas por Mijaíl Gorbachov para la reestructuración económica y la transparencia política en la URSS?", 
+                options: ["Glasnost y Perestroika", "Soviet y Koljós", "Nomenklatura y Duma", "Apartheid e Intifada"], 
+                answer: 0 
+            },
+            { 
+                q: "¿Qué hecho en septiembre del 2000 desencadenó la crisis final y la caída del régimen de Alberto Fujimori?", 
+                options: ["La fuga de Vladimiro Montesinos", "La difusión de los 'vladivideos'", "La marcha de los Cuatro Suyos", "La renuncia por fax desde Japón"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Quién asumió la Presidencia de Transición en el Perú tras la declaración de vacancia de Fujimori en noviembre del 2000?", 
+                options: ["Mario Vargas Llosa", "Valentín Paniagua", "Javier Pérez de Cuéllar", "Alejandro Toledo"], 
+                answer: 1 
+            },
+            { 
+                q: "¿En qué país africano ocurrió un trágico genocidio en 1994 donde murieron cerca de 800 000 personas en 100 días?", 
+                options: ["Sudáfrica", "Ruanda", "Congo", "Somalia"], 
+                answer: 1 
+            },
+            { 
+                q: "¿Quién desarrolló la World Wide Web (WWW) a finales de la década de 1980?", 
+                options: ["Bill Gates", "Steve Jobs", "Tim Berners-Lee", "Alan Turing"], 
+                answer: 2 
+            },
+            { 
+                q: " ¿Qué casos emblemáticos de violaciones de derechos humanos ocurrieron en 1991 y 1992 atribuidos al grupo Colina?", 
+                options: ["Chuschi y Uchuraccay", "Barrios Altos y La Cantuta", "Tarata y El Frontón", "Lucanamarca y Castro Castro"], 
+                answer: 1 
+            }
+        ];
+
+        // === COMUNICACIÓN CON GOOGLE SHEETS ===
+        // Recuerda reemplazar esta variable con la URL desplegada de Apps Script
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbxLE0YL2z18-UD5rOtSX1ZeiWU8uBIT8fTU9Cw6HPaOi80aEDXFywYkl_sjiWCfkZjg/exec"; 
+        
+        const server = {
+            withSuccessHandler: function(callback) {
+                return {
+                    getStudents: function(grado, seccion) {
+                        fetch(`${GOOGLE_SHEETS_URL}?action=getStudents&grado=${grado}&seccion=${seccion}`)
+                            .then(response => response.json())
+                            .then(result => { 
+                                if (result.success) {
+                                    callback(result.data || []); 
+                                } else {
+                                    showNotification("Error: " + result.message);
+                                    callback([]);
+                                }
+                            })
+                            .catch(error => { 
+                                showNotification("Error de conexión con la base de datos.");
+                                console.error('Error:', error); 
+                                callback([]); 
+                            });
+                    },
+                    saveScore: async function(nombre, grado, seccion, puntaje) {
+                        let ipEstudiante = 'Desconocido';
+                        
+                        try {
+                            const res = await fetch('https://1.1.1.1/cdn-cgi/trace');
+                            const text = await res.text();
+                            const match = text.match(/ip=(.*)/);
+                            if (match && match[1]) {
+                                ipEstudiante = match[1].trim();
+                            }
+                        } catch (e1) {
+                            console.warn('Fallo Cloudflare, intentando servidor secundario...', e1);
+                            try {
+                                const res2 = await fetch('https://api.ipify.org?format=json');
+                                const data = await res2.json();
+                                ipEstudiante = data.ip;
+                            } catch (e2) {
+                                console.error('Ambos servicios de IP fueron bloqueados.', e2);
+                            }
+                        }
+
+                        fetch(`${GOOGLE_SHEETS_URL}?action=saveScore&nombre=${encodeURIComponent(nombre)}&grado=${grado}&seccion=${seccion}&puntaje=${puntaje}&ip=${ipEstudiante}`)
+                            .then(response => response.json())
+                            .then(result => { callback(); })
+                            .catch(error => { console.error('Error al guardar datos:', error); callback(); });
+                    },
+                    getRanking: function() {
+                        fetch(`${GOOGLE_SHEETS_URL}?action=getRanking`)
+                            .then(response => response.json())
+                            .then(result => { callback(result.data || []); })
+                            .catch(error => { console.error('Error:', error); callback([]); });
+                    }
+                };
+            }
+        };
+
+        // === LÓGICA DEL JUEGO ===
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let lives = 5;
+        let score = 0;
+        let studentData = { nombre: '', grado: '', seccion: '' };
+        
+        let timeLeft = 20;
+        let timerInterval = null;
+
+        const screens = {
+            register: document.getElementById('screen-register'),
+            game: document.getElementById('screen-game'),
+            results: document.getElementById('screen-results')
+        };
+        
+        const elements = {
+            selGrado: document.getElementById('sel-grado'),
+            selSeccion: document.getElementById('sel-seccion'),
+            btnBuscar: document.getElementById('btn-buscar-alumnas'),
+            containerNombre: document.getElementById('container-nombre'),
+            selNombre: document.getElementById('sel-nombre'),
+            btnIniciar: document.getElementById('btn-iniciar'),
+            loadingMsg: document.getElementById('loading-msg'),
+            
+            livesContainer: document.getElementById('lives-container'),
+            scoreDisplay: document.getElementById('score-display'),
+            questionNumber: document.getElementById('question-number'),
+            questionText: document.getElementById('question-text'),
+            optionsContainer: document.getElementById('options-container'),
+            timerBar: document.getElementById('timer-bar'),
+            timerText: document.getElementById('timer-text'),
+            
+            finalScore: document.getElementById('final-score'),
+            rankingList: document.getElementById('ranking-list'),
+            endTitle: document.getElementById('end-title'),
+            endMessage: document.getElementById('end-message')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+        }
+
+        elements.btnBuscar.addEventListener('click', () => {
+            const grado = elements.selGrado.value;
+            const seccion = elements.selSeccion.value;
+            
+            if (!grado || !seccion) {
+                showNotification('Por favor selecciona tu grado y sección.');
+                return;
+            }
+
+            elements.loadingMsg.classList.remove('hidden');
+            elements.btnBuscar.disabled = true;
+            elements.btnBuscar.classList.add('opacity-50', 'cursor-not-allowed');
+
+            server.withSuccessHandler((alumnas) => {
+                elements.loadingMsg.classList.add('hidden');
+                elements.btnBuscar.disabled = false;
+                elements.btnBuscar.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                elements.selNombre.innerHTML = '<option value="">Selecciona tu nombre</option>';
+                if (alumnas && alumnas.length > 0) {
+                    alumnas.forEach(alumna => {
+                        const opt = document.createElement('option');
+                        opt.value = alumna;
+                        opt.textContent = alumna;
+                        elements.selNombre.appendChild(opt);
+                    });
+                    elements.containerNombre.classList.remove('hidden');
+                } else {
+                    showNotification('No se encontraron estudiantes para este grado y sección.');
+                }
+            }).getStudents(grado, seccion);
+        });
+
+        elements.btnIniciar.addEventListener('click', () => {
+            const nombre = elements.selNombre.value;
+            if (!nombre) {
+                showNotification("Selecciona tu nombre para continuar.");
+                return;
+            }
+            
+            studentData = { nombre: nombre, grado: elements.selGrado.value, seccion: elements.selSeccion.value };
+            startGame();
+        });
+
+        function startGame() {
+            if(Tone.context.state !== 'running') Tone.start();
+
+            currentQuestions = [...questionBank].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            lives = 5;
+            score = 0;
+            
+            updateLivesUI();
+            updateScoreUI();
+            showScreen('game');
+            loadQuestion();
+        }
+
+        const corazonSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="heart-beat"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+
+        function updateLivesUI() {
+            elements.livesContainer.innerHTML = '';
+            for(let i=0; i<5; i++) {
+                const heart = document.createElement('div');
+                heart.innerHTML = corazonSVG;
+                if(i >= lives) {
+                    heart.querySelector('svg').classList.remove('heart-beat');
+                    heart.querySelector('svg').classList.add('heart-lost');
+                }
+                elements.livesContainer.appendChild(heart);
+            }
+        }
+
+        function updateScoreUI() {
+            elements.scoreDisplay.textContent = score;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 20;
+            updateTimerUI();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const percentage = (timeLeft / 20) * 100;
+            elements.timerBar.style.width = `${percentage}%`;
+            elements.timerText.textContent = `${timeLeft}s`;
+            
+            if (timeLeft <= 5) elements.timerBar.classList.replace('bg-skycustom-500', 'bg-rose-600');
+            else elements.timerBar.classList.replace('bg-rose-600', 'bg-skycustom-500');
+        }
+
+        function handleTimeout() {
+            window.speechSynthesis.cancel();
+            playIncorrectSound();
+            showFeedback(false);
+            
+            const buttons = elements.optionsContainer.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+            
+            const q = currentQuestions[currentIndex];
+            buttons[q.answer].classList.replace('border-slate-200', 'border-accent-600');
+            buttons[q.answer].classList.replace('bg-white', 'bg-amber-100');
+            
+            lives--;
+            updateLivesUI();
+            
+            setTimeout(() => {
+                if (lives <= 0) endGame(false);
+                else { currentIndex++; loadQuestion(); }
+            }, 2000);
+        }
+
+        function loadQuestion() {
+            if (currentIndex >= currentQuestions.length) {
+                endGame(true);
+                return;
+            }
+
+            const q = currentQuestions[currentIndex];
+            elements.questionNumber.textContent = `Pregunta ${currentIndex + 1} de ${currentQuestions.length}`;
+            elements.questionText.textContent = q.q;
+            
+            elements.optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-2 border-slate-200 text-slate-800 hover:border-brand-500 hover:bg-rose-50 font-semibold py-4 px-6 rounded-xl shadow-sm transition transform hover:-translate-y-0.5 text-left w-full";
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                elements.optionsContainer.appendChild(btn);
+            });
+            
+            startTimer();
+            speakQuestion(q.q);
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            clearInterval(timerInterval);
+            window.speechSynthesis.cancel();
+
+            const buttons = elements.optionsContainer.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            const q = currentQuestions[currentIndex];
+            const isCorrect = (selectedIndex === q.answer);
+
+            if (isCorrect) {
+                playCorrectSound();
+                showFeedback(true);
+                btnElement.classList.replace('border-slate-200', 'border-emerald-600');
+                btnElement.classList.replace('bg-white', 'bg-emerald-600');
+                btnElement.classList.replace('text-slate-800', 'text-white');
+                score += 10;
+                updateScoreUI();
+            } else {
+                playIncorrectSound();
+                showFeedback(false);
+                btnElement.classList.replace('border-slate-200', 'border-rose-600');
+                btnElement.classList.replace('bg-white', 'bg-rose-600');
+                btnElement.classList.replace('text-slate-800', 'text-white');
+                
+                buttons[q.answer].classList.replace('border-slate-200', 'border-emerald-600');
+                buttons[q.answer].classList.replace('bg-white', 'bg-emerald-100');
+                
+                lives--;
+                updateLivesUI();
+            }
+
+            setTimeout(() => {
+                if (lives <= 0) endGame(false);
+                else { currentIndex++; loadQuestion(); }
+            }, 1500);
+        }
+
+        function endGame(won) {
+            clearInterval(timerInterval);
+            window.speechSynthesis.cancel();
+            showScreen('results');
+            elements.finalScore.textContent = score;
+            
+            if(won) {
+                elements.endTitle.textContent = "¡Felicidades, completaste el reto!";
+                elements.endTitle.className = "text-3xl font-extrabold mb-4 text-emerald-700";
+                elements.endMessage.textContent = "Excelente trabajo demostrando tus conocimientos sobre el Perú y el mundo.";
+            } else {
+                elements.endTitle.textContent = "¡Se acabaron tus vidas!";
+                elements.endTitle.className = "text-3xl font-extrabold mb-4 text-brand-700";
+                elements.endMessage.textContent = "Repasa el material de consulta y vuelve a intentarlo.";
+            }
+
+            elements.rankingList.innerHTML = '<li class="py-2 text-center text-slate-500">Guardando tu puntaje...</li>';
+            
+            server.withSuccessHandler(() => {
+                loadRanking();
+            }).saveScore(studentData.nombre, studentData.grado, studentData.seccion, score);
+        }
+
+        function loadRanking() {
+            elements.rankingList.innerHTML = '<li class="py-2 text-center text-slate-500">Cargando ranking general...</li>';
+            
+            server.withSuccessHandler((ranking) => {
+                elements.rankingList.innerHTML = '';
+                if(ranking.length === 0) {
+                    elements.rankingList.innerHTML = '<li class="py-2 text-center text-slate-500">Aún no hay estudiantes en el ranking.</li>';
+                    return;
+                }
+                
+                ranking.forEach((r, index) => {
+                    const li = document.createElement('li');
+                    li.className = "py-3 flex justify-between items-center";
+                    
+                    let badgeColor = "bg-slate-100 text-slate-800";
+                    if(index === 0) badgeColor = "bg-amber-400 text-amber-950 font-black";
+                    else if(index === 1) badgeColor = "bg-slate-300 text-slate-900 font-bold";
+                    else if(index === 2) badgeColor = "bg-amber-600 text-white font-bold";
+                    
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full ${badgeColor} flex items-center justify-center shadow-sm text-sm">${index + 1}</span>
+                            <div>
+                                <p class="font-bold text-slate-800">${r.nombre}</p>
+                                <p class="text-xs text-slate-500">${r.grado}° "${r.seccion}"</p>
+                            </div>
+                        </div>
+                        <div class="font-black text-brand-700 text-lg">${r.puntaje} pts</div>
+                    `;
+                    elements.rankingList.appendChild(li);
+                });
+            }).getRanking();
+        }
+    </script>
+</body>
+</html>
